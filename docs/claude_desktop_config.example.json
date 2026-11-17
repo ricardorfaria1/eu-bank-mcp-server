@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "eubank-attendant": {
+      "command": "uv",
+      "args": ["--directory", "<ABSOLUTE_PATH_TO_REPO>", "run", "eubank-mcp"],
+      "env": {
+        "EUBANK_ROLE": "attendant",
+        "EUBANK_OPERATOR_ID": "op-001",
+        "EUBANK_DB_PATH": "<ABSOLUTE_PATH_TO_REPO>/data/eubank.db",
+        "EUBANK_AUDIT_PATH": "<ABSOLUTE_PATH_TO_REPO>/data/audit.jsonl"
+      }
+    },
+    "eubank-analyst": {
+      "command": "uv",
+      "args": ["--directory", "<ABSOLUTE_PATH_TO_REPO>", "run", "eubank-mcp"],
+      "env": {
+        "EUBANK_ROLE": "analyst",
+        "EUBANK_OPERATOR_ID": "op-002",
+        "EUBANK_DB_PATH": "<ABSOLUTE_PATH_TO_REPO>/data/eubank.db",
+        "EUBANK_AUDIT_PATH": "<ABSOLUTE_PATH_TO_REPO>/data/audit.jsonl"
+      }
+    }
+  }
+}
