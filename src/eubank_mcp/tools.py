@@ -11,6 +11,16 @@ from datetime import date
 from eubank_mcp.audit import AuditLog, Outcome
 from eubank_mcp.config import Role, Settings
 from eubank_mcp.guards import Refusal, SessionGuard, parse_search
+from eubank_mcp.models import (
+    AnalystSummaryResult,
+    AttendantSummaryResult,
+    Match,
+    NotFound,
+    Refused,
+    RiskResult,
+    SearchResult,
+    SummaryResult,
+)
 from eubank_mcp.repository import Repository
 from eubank_mcp.views import RISK_FIELDS, SUMMARY_FIELDS, risk_view, summary_view
 
@@ -47,8 +57,8 @@ def _normalise_id(customer_id: str) -> str:
     return customer_id.strip().upper()
 
 
-def _refused(reason: str) -> dict:
-    return {"status": "refused", "reason": reason, "message": REFUSAL_MESSAGES[reason]}
+def _refused(reason: str) -> Refused:
+    return Refused(reason=reason, message=REFUSAL_MESSAGES[reason])
 
 
 class CustomerTools:
@@ -66,17 +76,16 @@ class CustomerTools:
         self._guard = guard
         self._today = today
 
-    def _refuse(self, tool: str, reason: str, customer_ids=(), criterion=None) -> dict:
+    def _refuse(self, tool: str, reason: str, customer_ids=(), criterion=None) -> Refused:
         self._audit.record(tool, "refused", customer_ids=customer_ids, criterion=criterion, reason=reason)
         return _refused(reason)
 
-    def _done(self, tool: str, outcome: Outcome, result: dict, customer_ids=(), fields=(),
-              criterion=None) -> dict:
+    def _done(self, tool: str, outcome: Outcome, result, customer_ids=(), fields=(), criterion=None):
         self._audit.record(tool, outcome, customer_ids=customer_ids, fields=fields, criterion=criterion)
         return result
 
     @_audit_errors("search_customers")
-    def search_customers(self, query: str) -> dict:
+    def search_customers(self, query: str) -> SearchResult | Refused:
         tool = "search_customers"
         parsed = parse_search(query)
         if isinstance(parsed, Refusal):
@@ -95,35 +104,36 @@ class CustomerTools:
         if refusal:
             # Nothing was returned, so no customer ids are logged as seen.
             return self._refuse(tool, refusal.reason, criterion=parsed.kind)
-        result = {"status": "ok", "matches": [{"customer_id": cid, "name": name} for cid, name in matches]}
+        result = SearchResult(matches=[Match(customer_id=cid, name=name) for cid, name in matches])
         return self._done(tool, "ok", result, customer_ids=ids, fields=("customer_id", "name"),
                           criterion=parsed.kind)
 
     @_audit_errors("get_customer_summary")
-    def get_customer_summary(self, customer_id: str) -> dict:
+    def get_customer_summary(self, customer_id: str) -> SummaryResult | NotFound | Refused:
         tool = "get_customer_summary"
         rec = self._repo.get_customer(_normalise_id(customer_id))
         if rec is None:
-            return self._done(tool, "not_found", {"status": "not_found"})
+            return self._done(tool, "not_found", NotFound())
         refusal = self._guard.admit([rec.customer_id])
         if refusal:
             return self._refuse(tool, refusal.reason, customer_ids=[rec.customer_id])
         role = self.settings.role
         view = summary_view(rec, self._repo.recent_notes(rec.customer_id), role, self._today())
-        return self._done(tool, "ok", {"status": "ok", "customer": view},
+        result_type = AnalystSummaryResult if role is Role.ANALYST else AttendantSummaryResult
+        return self._done(tool, "ok", result_type(customer=view),
                           customer_ids=[rec.customer_id], fields=SUMMARY_FIELDS[role])
 
     @_audit_errors("get_customer_risk")
-    def get_customer_risk(self, customer_id: str) -> dict:
+    def get_customer_risk(self, customer_id: str) -> RiskResult | NotFound | Refused:
         tool = "get_customer_risk"
         # The server does not register this tool for attendants; this check is a second line.
         if self.settings.role is not Role.ANALYST:
             return self._refuse(tool, "not_allowed_for_role")
         rec = self._repo.get_customer(_normalise_id(customer_id))
         if rec is None:
-            return self._done(tool, "not_found", {"status": "not_found"})
+            return self._done(tool, "not_found", NotFound())
         refusal = self._guard.admit([rec.customer_id])
         if refusal:
             return self._refuse(tool, refusal.reason, customer_ids=[rec.customer_id])
-        return self._done(tool, "ok", {"status": "ok", "risk": risk_view(rec)},
+        return self._done(tool, "ok", RiskResult(risk=risk_view(rec)),
                           customer_ids=[rec.customer_id], fields=RISK_FIELDS)

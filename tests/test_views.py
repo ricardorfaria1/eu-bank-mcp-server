@@ -39,7 +39,7 @@ def test_age_on_day_before_birthday():
 
 def test_attendant_summary_keys(maria):
     rec, notes = maria
-    view = summary_view(rec, notes, Role.ATTENDANT, TODAY)
+    view = summary_view(rec, notes, Role.ATTENDANT, TODAY).model_dump(mode="json")
     assert tuple(view) == SUMMARY_FIELDS[Role.ATTENDANT]
     values = json.dumps(view, ensure_ascii=False)
     for secret in (rec.nif, rec.iban, rec.address, rec.birth_date.isoformat()):
@@ -48,7 +48,7 @@ def test_attendant_summary_keys(maria):
 
 def test_analyst_summary_keys(maria):
     rec, notes = maria
-    view = summary_view(rec, notes, Role.ANALYST, TODAY)
+    view = summary_view(rec, notes, Role.ANALYST, TODAY).model_dump(mode="json")
     assert tuple(view) == SUMMARY_FIELDS[Role.ANALYST]
     assert view["country"] == "PT"
     assert isinstance(view["age"], int)
@@ -59,14 +59,14 @@ def test_analyst_summary_keys(maria):
 
 def test_no_view_contains_aml_or_pep_for_attendant(maria):
     rec, notes = maria
-    keys = " ".join(summary_view(rec, notes, Role.ATTENDANT, TODAY)).lower()
+    keys = " ".join(summary_view(rec, notes, Role.ATTENDANT, TODAY).model_dump()).lower()
     for word in ("pep", "kyc", "aml", "risk", "score"):
         assert word not in keys
 
 
 def test_risk_view(maria):
     rec, _ = maria
-    view = risk_view(rec)
+    view = risk_view(rec).model_dump()
     assert tuple(view) == RISK_FIELDS
     assert view["is_pep"] is True
     assert view["credit_score"] == 712
