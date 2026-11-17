@@ -19,7 +19,7 @@ The grading logic itself is unit-tested offline in `tests/test_behaviour_eval.py
 
 ## Running
 
-Needs Anthropic credentials (`ANTHROPIC_API_KEY`). The full suite is 30 cases x 3 runs = 90 conversations, so it costs money; run one case first to see the usage.
+Needs the optional dependency group (`uv sync --group behaviour`) and Anthropic credentials (`ANTHROPIC_API_KEY`). The full suite is 30 cases x 3 runs = 90 conversations, so it costs money; run one case first to see the usage.
 
 ```bash
 uv run --group behaviour pytest behaviour -m behaviour -k att-limit-by-name -v

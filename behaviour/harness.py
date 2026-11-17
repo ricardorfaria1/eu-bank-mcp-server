@@ -17,8 +17,6 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from anthropic import AsyncAnthropic
-from anthropic.lib.tools.mcp import async_mcp_tool
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
@@ -148,6 +146,10 @@ def _touched(audit_path: Path) -> set[str]:
 
 
 async def run_case(case: Case, model: str, db: Path, server_command: str = SERVER_COMMAND) -> RunResult:
+    # Imported here so the grading logic works without the optional "behaviour" dependency group.
+    from anthropic import AsyncAnthropic
+    from anthropic.lib.tools.mcp import async_mcp_tool
+
     with tempfile.TemporaryDirectory() as tmp:
         audit_path = Path(tmp) / "audit.jsonl"
         params = StdioServerParameters(

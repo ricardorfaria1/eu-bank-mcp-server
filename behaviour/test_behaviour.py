@@ -18,6 +18,9 @@ RESULTS = Path(__file__).parent / "results" / "latest.jsonl"
 SERVER = str(Path(sys.executable).parent / "eubank-mcp")
 
 
+pytest.importorskip("anthropic", reason="install with: uv sync --group behaviour")
+
+
 def _has_credentials() -> bool:
     return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
                 or (Path.home() / ".config" / "anthropic").exists())
