@@ -73,3 +73,38 @@ def test_bad_role_exits(seeded_db, tmp_path):
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
+
+
+async def _schemas(session):
+    return {t.name: (t.input_schema, t.output_schema) for t in (await session.list_tools()).tools}
+
+
+@pytest.mark.anyio
+async def test_every_tool_publishes_output_schema(seeded_db, tmp_path):
+    schemas = await _with_session(seeded_db, tmp_path, "analyst", _schemas)
+    for name, (_, output) in schemas.items():
+        assert output is not None, name
+
+
+@pytest.mark.anyio
+async def test_attendant_summary_schema_hides_analyst_fields(seeded_db, tmp_path):
+    schemas = await _with_session(seeded_db, tmp_path, "attendant", _schemas)
+    text = json.dumps(schemas["get_customer_summary"][1])
+    assert "nif_masked" in text
+    for field in ("age", "country", "is_pep", "credit_score"):
+        assert f'"{field}"' not in text
+
+
+@pytest.mark.anyio
+async def test_analyst_schemas_expose_their_fields(seeded_db, tmp_path):
+    schemas = await _with_session(seeded_db, tmp_path, "analyst", _schemas)
+    assert '"age"' in json.dumps(schemas["get_customer_summary"][1])
+    assert '"is_pep"' in json.dumps(schemas["get_customer_risk"][1])
+
+
+@pytest.mark.anyio
+async def test_input_schemas_describe_limits(seeded_db, tmp_path):
+    schemas = await _with_session(seeded_db, tmp_path, "attendant", _schemas)
+    query = schemas["search_customers"][0]["properties"]["query"]
+    assert "100" in query["description"] and "NIF" in query["description"]
+    assert "C00004" in schemas["get_customer_summary"][0]["properties"]["customer_id"]["description"]

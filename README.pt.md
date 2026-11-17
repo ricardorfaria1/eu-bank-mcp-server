@@ -25,7 +25,8 @@ flowchart LR
 |---|---|
 | `config.py` | Perfil e id do operador lidos de variáveis de ambiente, uma vez, no arranque |
 | `repository.py` | SQLite aberto em modo só de leitura; nenhum método lê a tabela de alertas de AML |
-| `views.py` | Os campos de cada perfil e a mascaragem do NIF e do IBAN |
+| `models.py` | Entradas e saídas tipadas (Pydantic). O SDK publica-as como schema de cada ferramenta, e o schema do atendente nem nomeia os campos do analista |
+| `views.py` | Constrói o modelo de cada perfil a partir do registo do cliente, mascarando o NIF e o IBAN |
 | `guards.py` | Regras de pesquisa e limite de clientes distintos por sessão |
 | `audit.py` | Registo só de acréscimo de quem viu que clientes e que campos, nunca os valores |
 | `tools.py` | Lógica das ferramentas, testável sem MCP |
@@ -33,7 +34,7 @@ flowchart LR
 
 ## Perfis e campos
 
-Dois perfis, fixados na configuração do servidor. O modelo não tem ferramenta nem parâmetro para os mudar.
+Dois perfis, fixados na configuração do servidor. O modelo não tem ferramenta nem parâmetro para os mudar. Cada ferramenta publica um schema de saída para o seu perfil, por isso o cliente sabe que campos podem vir antes de a chamar.
 
 | Campo | Atendente | Analista de crédito |
 |---|---|---|

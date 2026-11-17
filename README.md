@@ -25,7 +25,8 @@ flowchart LR
 |---|---|
 | `config.py` | Role and operator id from environment variables, read once at startup |
 | `repository.py` | SQLite opened in read-only mode; no method reads the AML alerts table |
-| `views.py` | The fields each role receives, and how NIF and IBAN are masked |
+| `models.py` | Typed inputs and outputs (Pydantic). The SDK publishes them as each tool's schema, and the attendant's schema never names the analyst fields |
+| `views.py` | Builds each role's model from a customer record, masking NIF and IBAN |
 | `guards.py` | Search rules and the per-session limit of distinct customers |
 | `audit.py` | Append-only log of who saw which customers and which fields, never the values |
 | `tools.py` | Tool logic, testable without MCP |
@@ -33,7 +34,7 @@ flowchart LR
 
 ## Roles and fields
 
-Two roles, fixed in the server configuration. The model has no tool or parameter to change them.
+Two roles, fixed in the server configuration. The model has no tool or parameter to change them. Each tool publishes an output schema for its role, so the client knows which fields can come back before calling it.
 
 | Field | Attendant | Credit analyst |
 |---|---|---|

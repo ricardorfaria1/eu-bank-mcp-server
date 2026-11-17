@@ -7,13 +7,33 @@ import pytest
 from eubank_mcp.audit import AuditLog
 from eubank_mcp.config import Role, Settings
 from eubank_mcp.guards import SessionGuard
+from eubank_mcp.models import (
+    AnalystSummaryResult,
+    AttendantSummaryResult,
+    NotFound,
+    Refused,
+    SearchResult,
+)
 from eubank_mcp.repository import Repository
 from eubank_mcp.tools import CustomerTools
 from eubank_mcp.views import RISK_FIELDS, SUMMARY_FIELDS
 
 
+class _AsSeenByClient:
+    """Wraps CustomerTools so tool results are compared as the JSON the MCP client receives."""
+
+    def __init__(self, tools: CustomerTools):
+        self._tools = tools
+
+    def __getattr__(self, name):
+        attr = getattr(self._tools, name)
+        if name in ("search_customers", "get_customer_summary", "get_customer_risk"):
+            return lambda *a, **k: attr(*a, **k).model_dump(mode="json")
+        return attr
+
+
 @pytest.fixture
-def make_tools(seeded_db, tmp_path):
+def raw_tools(seeded_db, tmp_path):
     def _make(role: Role, cap: int = 20) -> CustomerTools:
         settings = Settings(role=role, operator_id="op-1", db_path=seeded_db,
                             audit_path=tmp_path / f"audit-{role}.jsonl", session_customer_cap=cap)
@@ -25,6 +45,20 @@ def make_tools(seeded_db, tmp_path):
             today=lambda: date(2026, 11, 17),
         )
     return _make
+
+
+@pytest.fixture
+def make_tools(raw_tools):
+    return lambda role, cap=20: _AsSeenByClient(raw_tools(role, cap))
+
+
+def test_tools_return_typed_models(raw_tools):
+    attendant, analyst = raw_tools(Role.ATTENDANT), raw_tools(Role.ANALYST)
+    assert isinstance(attendant.search_customers("becker"), SearchResult)
+    assert isinstance(attendant.search_customers("Silva"), Refused)
+    assert isinstance(attendant.get_customer_summary("C00004"), AttendantSummaryResult)
+    assert isinstance(analyst.get_customer_summary("C00004"), AnalystSummaryResult)
+    assert isinstance(analyst.get_customer_risk("C99999"), NotFound)
 
 
 def _audit(tools: CustomerTools) -> list[dict]:

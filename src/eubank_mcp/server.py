@@ -12,6 +12,16 @@ from mcp.types import ToolAnnotations
 from eubank_mcp.audit import AuditLog
 from eubank_mcp.config import ConfigError, Role, Settings, load_settings
 from eubank_mcp.guards import SessionGuard
+from eubank_mcp.models import (
+    AnalystSummaryResult,
+    AttendantSummaryResult,
+    CustomerIdParam,
+    NotFound,
+    Refused,
+    RiskResult,
+    SearchQueryParam,
+    SearchResult,
+)
 from eubank_mcp.repository import Repository
 from eubank_mcp.tools import CustomerTools
 
@@ -38,7 +48,7 @@ def build_server(settings: Settings) -> MCPServer:
         instructions=INSTRUCTIONS.format(role=settings.role.value),
     )
 
-    def search_customers(query: str) -> dict:
+    def search_customers(query: SearchQueryParam) -> SearchResult | Refused:
         """Find customers by part of their name (at least 3 letters) or by their complete 9-digit NIF.
 
         Returns up to 5 matches with customer_id and name. If more than 5 customers match, the search
@@ -46,20 +56,27 @@ def build_server(settings: Settings) -> MCPServer:
         """
         return tools.search_customers(query)
 
-    def get_customer_summary(customer_id: str) -> dict:
-        """Get one customer's summary by customer_id (for example "C00004").
+    summary_doc = """Get one customer's summary by customer_id.
 
-        Returns the fields allowed for your role: name, masked NIF and IBAN, pre-approved limit in
-        euros and the 3 most recent service notes, plus age and country for credit analysts.
-        Returns status "not_found" for unknown ids.
+        Returns name, masked NIF and IBAN, pre-approved limit in euros and the 3 most recent service
+        notes{extra}. Returns status "not_found" for unknown ids.
         """
-        return tools.get_customer_summary(customer_id)
+
+    # Separate functions so each role's outputSchema names only the fields that role receives.
+    if settings.role is Role.ANALYST:
+        def get_customer_summary(customer_id: CustomerIdParam) -> AnalystSummaryResult | NotFound | Refused:
+            return tools.get_customer_summary(customer_id)
+        get_customer_summary.__doc__ = summary_doc.format(extra=", plus age and country")
+    else:
+        def get_customer_summary(customer_id: CustomerIdParam) -> AttendantSummaryResult | NotFound | Refused:
+            return tools.get_customer_summary(customer_id)
+        get_customer_summary.__doc__ = summary_doc.format(extra="")
 
     server.add_tool(search_customers, annotations=READ_ONLY)
     server.add_tool(get_customer_summary, annotations=READ_ONLY)
 
     if settings.role is Role.ANALYST:
-        def get_customer_risk(customer_id: str) -> dict:
+        def get_customer_risk(customer_id: CustomerIdParam) -> RiskResult | NotFound | Refused:
             """Get one customer's credit risk data by customer_id.
 
             Returns credit score, risk profile (low, medium, high), KYC status (verified, pending,
