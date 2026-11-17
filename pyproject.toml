@@ -30,6 +30,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "behaviour"]
+pythonpath = ["."]
 markers = ["behaviour: LLM behaviour tests (call the Claude API, cost money)"]
 addopts = "-m 'not behaviour'"
