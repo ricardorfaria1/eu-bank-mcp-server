@@ -1,5 +1,5 @@
 import json
-from dataclasses import replace
+from dataclasses import FrozenInstanceError, replace
 from datetime import date
 
 import pytest
@@ -128,6 +128,6 @@ def test_audit_has_no_values(make_tools, seeded_db):
 
 def test_settings_are_frozen(make_tools):
     tools = make_tools(Role.ATTENDANT)
-    with pytest.raises(Exception):
+    with pytest.raises(FrozenInstanceError):
         tools.settings.role = Role.ANALYST
     assert replace(tools.settings).role is Role.ATTENDANT

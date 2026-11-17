@@ -23,10 +23,9 @@ def _env(db, tmp_path, role):
 
 async def _with_session(db, tmp_path, role, fn):
     params = StdioServerParameters(command=SERVER, env=_env(db, tmp_path, role))
-    async with stdio_client(params) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            return await fn(session)
+    async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+        await session.initialize()
+        return await fn(session)
 
 
 async def _tool_names(session):
@@ -66,7 +65,7 @@ async def test_call_summary_over_stdio(seeded_db, tmp_path):
 
 def test_bad_role_exits(seeded_db, tmp_path):
     env = _env(seeded_db, tmp_path, "admin")
-    proc = subprocess.run([SERVER], env=env, capture_output=True, text=True, timeout=30)
+    proc = subprocess.run([SERVER], check=False, env=env, capture_output=True, text=True, timeout=30)
     assert proc.returncode == 2
     assert "EUBANK_ROLE" in proc.stderr
 
