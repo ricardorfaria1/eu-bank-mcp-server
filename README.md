@@ -1,5 +1,7 @@
 # EU Bank Customer Data MCP Server
 
+[![CI](https://github.com/ricardorfaria1/eu-bank-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/ricardorfaria1/eu-bank-mcp-server/actions/workflows/ci.yml)
+
 [Português](README.pt.md)
 
 A read-only [MCP](https://modelcontextprotocol.io/) server that lets staff at a fictional Portuguese bank ask Claude about EU-resident customers. The server decides which tools exist, which fields each role receives and how many customers a session can touch, and it writes an audit line for every call. The model never sees more than the role allows, however the question is phrased.

@@ -1,5 +1,7 @@
 # Servidor MCP de dados de clientes de um banco europeu
 
+[![CI](https://github.com/ricardorfaria1/eu-bank-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/ricardorfaria1/eu-bank-mcp-server/actions/workflows/ci.yml)
+
 [English](README.md)
 
 Servidor [MCP](https://modelcontextprotocol.io/) só de leitura que permite aos funcionários de um banco português fictício perguntar ao Claude sobre clientes residentes na UE. O servidor decide que ferramentas existem, que campos cada perfil recebe e quantos clientes uma sessão pode consultar, e regista cada chamada. O modelo nunca vê mais do que o perfil permite, seja qual for a pergunta.
