@@ -131,3 +131,37 @@ def test_settings_are_frozen(make_tools):
     with pytest.raises(FrozenInstanceError):
         tools.settings.role = Role.ANALYST
     assert replace(tools.settings).role is Role.ATTENDANT
+
+
+def test_repository_error_is_audited_and_reraised(make_tools):
+    tools = make_tools(Role.ANALYST)
+
+    def boom(*_a, **_k):
+        raise RuntimeError("db down")
+
+    tools._repo.get_customer = boom
+    with pytest.raises(RuntimeError):
+        tools.get_customer_summary("C00001")
+    entry = _audit(tools)[-1]
+    assert entry["outcome"] == "error" and entry["tool"] == "get_customer_summary"
+
+
+def test_cap_refused_search_does_not_log_unreturned_ids(make_tools):
+    tools = make_tools(Role.ATTENDANT, cap=1)
+    assert tools.search_customers("ferreira")["status"] == "refused"
+    assert _audit(tools)[-1]["customer_ids"] == []
+
+
+@pytest.mark.parametrize("raw_id", ["c00001", " C00001 ", "C00001\n"])
+def test_customer_id_normalised(make_tools, raw_id):
+    assert make_tools(Role.ANALYST).get_customer_summary(raw_id)["status"] == "ok"
+
+
+def test_search_matches_all_words_in_any_position(make_tools):
+    ids = {m["customer_id"] for m in make_tools(Role.ATTENDANT).search_customers("Maria Ferreira")["matches"]}
+    assert "C00001" in ids
+
+
+def test_very_long_query_refused_not_crash(make_tools):
+    result = make_tools(Role.ATTENDANT).search_customers("a" * 100_000)
+    assert result["status"] == "refused" and result["reason"] == "query_too_long"

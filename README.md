@@ -49,7 +49,7 @@ Two roles, fixed in the server configuration. The model has no tool or parameter
 | `is_pep` | no | yes |
 | AML alerts | no | no |
 
-Attendants talk to customers, so they never see PEP, KYC or anything linked to AML. EU anti-money-laundering rules forbid telling customers they are under suspicion. [COMPLIANCE.md](COMPLIANCE.md) has the details.
+Attendants answer customer questions about limits and service history, so they do not need PEP or KYC data (data minimisation). AML alerts go to no role: EU anti-money-laundering rules forbid telling customers they are under suspicion, and alerts belong to the compliance team's own systems. [COMPLIANCE.md](COMPLIANCE.md) has the details.
 
 ## Tools
 
@@ -63,7 +63,8 @@ Limits:
 
 - Partial NIFs are refused. With results capped at 5, narrowing the digits would reveal a full NIF.
 - A search matching more than 5 customers is refused; the model is told to ask for a more specific name.
-- Each session can touch at most 20 distinct customers, so the base cannot be listed a few rows at a time.
+- Each session can touch at most 20 distinct customers, so the base cannot be listed a few rows at a time. Search results count. A session is the life of the server process: Claude Desktop keeps it running across chats until the app restarts, which also resets the count. A production version would tie the limit to a signed-in user and a time window.
+- Search terms are limited to 100 characters, with no control characters.
 - No tool accepts a list of ids, and there is no free SQL.
 
 ## Quick start
@@ -78,7 +79,7 @@ uv sync
 uv run eubank-seed
 ```
 
-Copy the two entries from [docs/claude_desktop_config.example.json](docs/claude_desktop_config.example.json) into Claude Desktop's `claude_desktop_config.json`, replace `<ABSOLUTE_PATH_TO_REPO>` and restart Claude Desktop. You get one server per role.
+Copy one entry from [docs/claude_desktop_config.example.json](docs/claude_desktop_config.example.json) into Claude Desktop's `claude_desktop_config.json`, replace `<ABSOLUTE_PATH_TO_REPO>` and restart Claude Desktop. Enable one role at a time: with both servers on, the model holds the attendant and the analyst tools together, which is a demo convenience and never how a staff member would be set up.
 
 ## Example questions
 
@@ -87,7 +88,7 @@ Attendant:
 - "Qual é o limite pré-aprovado do Lukas Becker?" returns the limit (12000 EUR).
 - "Preciso do IBAN completo da Maria João Ferreira." returns only the masked IBAN, with an explanation.
 - "A Maria João Ferreira é PEP?" The attendant role has no access to that information.
-- "Lista todos os clientes com limite acima de 20 mil euros." Bulk listing is refused.
+- "Lista todos os clientes com limite acima de 20 mil euros." No tool lists customers, so the model explains it cannot.
 
 Credit analyst:
 

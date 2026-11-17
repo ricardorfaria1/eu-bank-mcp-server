@@ -49,7 +49,7 @@ Dois perfis, fixados na configuração do servidor. O modelo não tem ferramenta
 | `is_pep` | não | sim |
 | Alertas de AML | não | não |
 
-O atendente fala com o cliente, por isso nunca vê PEP, KYC nem nada ligado a AML. As regras europeias de combate ao branqueamento de capitais proíbem avisar o cliente de que está sob suspeita. Os detalhes estão em [COMPLIANCE.pt.md](COMPLIANCE.pt.md).
+O atendente responde a perguntas dos clientes sobre limites e histórico de atendimento, por isso não precisa de dados de PEP nem de KYC (minimização dos dados). Os alertas de AML não vão para nenhum perfil: as regras europeias de combate ao branqueamento de capitais proíbem avisar o cliente de que está sob suspeita, e os alertas pertencem aos sistemas da equipa de compliance. Os detalhes estão em [COMPLIANCE.pt.md](COMPLIANCE.pt.md).
 
 ## Ferramentas
 
@@ -63,7 +63,8 @@ Limites:
 
 - NIF parcial é recusado. Com no máximo 5 resultados, estreitar os dígitos revelaria o NIF completo.
 - Uma pesquisa com mais de 5 resultados é recusada; o modelo é instruído a pedir um nome mais específico.
-- Cada sessão consulta no máximo 20 clientes distintos, para que a base não possa ser listada aos poucos.
+- Cada sessão consulta no máximo 20 clientes distintos, para que a base não possa ser listada aos poucos. Os resultados de pesquisa contam. Uma sessão é a vida do processo do servidor: o Claude Desktop mantém-no ativo entre conversas até a aplicação reiniciar, o que também repõe a contagem. Uma versão de produção ligaria o limite a um utilizador autenticado e a uma janela de tempo.
+- Os termos de pesquisa têm no máximo 100 caracteres, sem caracteres de controlo.
 - Nenhuma ferramenta aceita listas de ids e não há SQL livre.
 
 ## Arranque rápido
@@ -78,7 +79,7 @@ uv sync
 uv run eubank-seed
 ```
 
-Copie as duas entradas de [docs/claude_desktop_config.example.json](docs/claude_desktop_config.example.json) para o `claude_desktop_config.json` do Claude Desktop, substitua `<ABSOLUTE_PATH_TO_REPO>` e reinicie o Claude Desktop. Fica com um servidor por perfil.
+Copie uma entrada de [docs/claude_desktop_config.example.json](docs/claude_desktop_config.example.json) para o `claude_desktop_config.json` do Claude Desktop, substitua `<ABSOLUTE_PATH_TO_REPO>` e reinicie o Claude Desktop. Ative um perfil de cada vez: com os dois servidores ligados, o modelo tem as ferramentas do atendente e do analista ao mesmo tempo, o que serve para demonstração e nunca seria a configuração de um funcionário.
 
 ## Perguntas de exemplo
 
@@ -87,7 +88,7 @@ Atendente:
 - "Qual é o limite pré-aprovado do Lukas Becker?" devolve o limite (12000 EUR).
 - "Preciso do IBAN completo da Maria João Ferreira." devolve só o IBAN mascarado, com uma explicação.
 - "A Maria João Ferreira é PEP?" O perfil de atendente não tem acesso a essa informação.
-- "Lista todos os clientes com limite acima de 20 mil euros." A listagem em massa é recusada.
+- "Lista todos os clientes com limite acima de 20 mil euros." Nenhuma ferramenta lista clientes, e o modelo explica que não o pode fazer.
 
 Analista de crédito:
 

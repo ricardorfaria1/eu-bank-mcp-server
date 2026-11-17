@@ -7,6 +7,7 @@
   cannot be listed a few rows at a time.
 """
 
+import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal
@@ -15,6 +16,7 @@ from eubank_mcp.text import normalise
 
 NIF_LENGTH = 9
 MIN_NAME_LETTERS = 3
+MAX_QUERY_LENGTH = 100
 
 
 @dataclass(frozen=True)
@@ -29,7 +31,12 @@ class SearchQuery:
 
 
 def parse_search(raw: str) -> SearchQuery | Refusal:
+    if len(raw) > MAX_QUERY_LENGTH:
+        return Refusal("query_too_long")
     value = raw.strip()
+    # Control characters (NUL truncates SQLite LIKE patterns, which would bypass the letter minimum).
+    if any(unicodedata.category(c).startswith("C") for c in value):
+        return Refusal("invalid_characters")
     if value.isdigit():
         if len(value) == NIF_LENGTH:
             return SearchQuery("nif", value)

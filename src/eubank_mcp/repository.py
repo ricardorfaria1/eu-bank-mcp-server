@@ -36,10 +36,12 @@ class Repository:
                                      check_same_thread=False)
 
     def search_by_name(self, normalised_term: str, limit: int) -> list[tuple[str, str]]:
+        """Customers whose name contains every word of the term, in any position."""
+        words = normalised_term.split() or [""]
+        where = " AND ".join("name_search LIKE ? ESCAPE '\\'" for _ in words)
         rows = self._conn.execute(
-            "SELECT customer_id, full_name FROM customers "
-            "WHERE name_search LIKE ? ESCAPE '\\' ORDER BY customer_id LIMIT ?",
-            (f"%{_escape_like(normalised_term)}%", limit),
+            f"SELECT customer_id, full_name FROM customers WHERE {where} ORDER BY customer_id LIMIT ?",
+            (*(f"%{_escape_like(w)}%" for w in words), limit),
         ).fetchall()
         return [(cid, name) for cid, name in rows]
 

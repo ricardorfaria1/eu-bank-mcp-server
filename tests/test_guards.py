@@ -29,3 +29,13 @@ def test_session_guard_counts_distinct_customers():
     assert guard.admit(["C3", "C4"]) == Refusal("session_customer_cap_reached")
     assert guard.admit(["C3"]) is None
     assert guard.admit(["C4"]) == Refusal("session_customer_cap_reached")
+
+
+@pytest.mark.parametrize("raw", ["z\x00abc", "ra\x00xyz", "ana\tsilva", "ana\x1bx"])
+def test_control_characters_refused(raw):
+    assert parse_search(raw) == Refusal("invalid_characters")
+
+
+def test_long_query_refused():
+    assert parse_search("a" * 101) == Refusal("query_too_long")
+    assert parse_search("a" * 100) == SearchQuery("name", "a" * 100)
