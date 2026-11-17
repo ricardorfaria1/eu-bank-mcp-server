@@ -1,0 +1,36 @@
+[project]
+name = "eubank-mcp"
+version = "0.1.0"
+description = "Read-only MCP server giving bank staff role-scoped access to synthetic EU customer data"
+readme = "README.md"
+authors = [
+    { name = "Ricardo Faria", email = "40174689+ricardorfaria1@users.noreply.github.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "faker==40.54.*",
+    "mcp==2.3.*",
+]
+
+[project.scripts]
+eubank-mcp = "eubank_mcp.server:main"
+eubank-seed = "eubank_mcp.seed:main"
+
+[build-system]
+requires = ["uv_build>=0.13.4,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+behaviour = [
+    "anthropic[mcp]==2.9.*",
+]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "behaviour"]
+pythonpath = ["."]
+markers = ["behaviour: LLM behaviour tests (call the Claude API, cost money)"]
+addopts = "-m 'not behaviour'"
